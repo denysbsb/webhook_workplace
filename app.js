@@ -1,12 +1,18 @@
 const
   bodyParser = require('body-parser'),
   crypto = require('crypto'),
-  express = require('express');
+  express = require('express'),
+  rp = require('request-promise');
 
-  const
-  APP_SECRET = process.env.APP_SECRET,
-  VERIFY_TOKEN = process.env.VERIFY_TOKEN,
-  ACCESS_TOKEN = process.env.ACCESS_TOKEN;
+//   const
+//   APP_SECRET = process.env.APP_SECRET,
+//   VERIFY_TOKEN = process.env.VERIFY_TOKEN,
+//   ACCESS_TOKEN = process.env.ACCESS_TOKEN;
+
+const
+   APP_SECRET = '790c7af3b7b2295488a9858d9b2c0077',
+   VERIFY_TOKEN = '123',
+   ACCESS_TOKEN = 'DQVJ2U1dXSW54TTFGVnNzVnlmMVdvRjluZAWpDVGVDMjY2RHNNUXNEZAmxvWjVzVXRpVU1kMlpTdWQ2bDBDa280YXU1aEF0OW9kbkFCdkRBdG43S1VWY0szd1JDaXhIak4zbEt0b2JDb09nSkI0MlZABRE1LYjdQSm02ZAEtweVg3NDlYdGthc1lhT1BYeG9iVDJGVnhmM1czemh1SHMyZA3c5T2dxWTc1UHNYWWcyQk9nZAFZAfU29FTG1oZAFdkOS1TbWpEaUNzY3hVOU5DdXpGYm92ZAwZDZD';
 
 //   if (!(APP_SECRET && VERIFY_TOKEN && ACCESS_TOKEN)) {
 //     console.error('Missing config values');
@@ -96,6 +102,7 @@ app.post('/', function (req, res) {
 });
 
 function processPageEvents(data) {
+    console.log('processPAGEEVENT--');
     data.entry.forEach(function(entry){
         let page_id = entry.id;
             // Chat messages sent to the page
@@ -113,16 +120,165 @@ function processPageEvents(data) {
     });
 }
 
-function processGroupEvents(data) {
-    data.entry.forEach(function(entry){
-        let group_id = entry.id;
-        entry.changes.forEach(function(change){
-        console.log('Group Change',group_id,change);
+function getDate(){
+    var data = new Date();
+    return data.toLocaleDateString('pt-br', {timezone: 'Brazil/brt'});
+}
+
+function foiVerificado(id) {
+    console.log('4444 --- Teste--');
+    return new Promise((resolve, reject)=>{
+        console.log('foi verificado--',getDate());
+
+        let endpoint = 'https://graph.facebook.com/1406581722734258/members?fields=id,name,account_invite_time'; 
+        
+        console.log('endpoint--',endpoint);
+
+        rp({
+            url: endpoint,
+            headers: {
+                Authorization: 'Bearer ' + ACCESS_TOKEN
+            },
+            json: true
+            })
+        .then(function (res) {
+           // console.log(res.data);
+           console.log('5555 --- Teste--');
+            let filtro = res.data.filter((data) => {return data.id === id});
+            
+            let dataDoConvite = new Date(filtro[0].account_invite_time).toLocaleDateString('pt-br', {timezone: 'Brazil/brt'});
+
+            // confere se a data do convite é igual a data de hoje
+            if(dataDoConvite === getDate()) {
+                console.log('6666 --- Teste--');
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+            
+        })
+        .catch(function (err) {
+            reject();
+            console.log('err');
         });
     });
 }
 
+function processGroupEvents(data) {
+
+    console.log('1111 --- Teste--');
+    console.log('processGroupEvents--');
+    let idUserAdd = '';
+    data.entry.forEach(function(entry){
+
+        entry.changes.forEach(function(change){
+
+            if (change.field === 'membership') {
+                if (!change.value.actor) {
+                
+                    if (change.value.verb = 'add') {
+                        idUserAdd = change.value.member.id;
+                        console.log('2222 --- Teste--');
+                        validaNovo(idUserAdd);
+                    }
+                }
+            }
+
+        });
+
+    });
+
+    // console.log('processGroupEvents--(data.entry)',data.entry);
+
+    // data.entry.forEach(function(entry){
+        
+    //     let idUserAdd = '';
+
+    //     entry.changes.forEach(function(change){
+
+    //     //change 
+    //     if (change.field === 'membership') {
+    //         if (!change.value.actor) {
+            
+    //             if(change.value.verb = 'add'){
+    //                 idUserAdd = change.value.member.id;
+
+    //                 console.log('idUserAdd Pessoa inserida--', idUserAdd);
+
+    //                 setGroups(idUserAdd);
+    //             }
+    //         }
+    //     }
+
+    //     console.log('Group Change',change);
+    //     });
+    // });
+}
+
+app.get('/teste', function(req, res) {
+    console.log('chamou o teste');
+    processGroupEvents();
+    res.send('Teste!')
+});
+
+function validaNovo(id){
+    console.log('3333 --- Teste--');
+    // atraves do verificado eu sei se a conta é nova
+    foiVerificado(id).then(function(data) { 
+        if (data) {
+            console.log('7777 --- Teste--');
+            console.log('deu DATA true--');
+            setGroups(id);
+        } else {
+            
+            console.log('deu DATA false--');
+        }
+    }).catch(function(){
+        console.log('err call');
+    });
+
+
+}
+
+function setGroups(id) {
+    // Grupos: stefanini 754 , suporteTI 116, comunicado 125, umc, transformacao
+    let groups_id = [
+        '754959588048552',
+        '1164556426999867',
+        '1258339934284192',
+        '119771951980956',
+        '2050634305179034'
+    ];
+
+    let userId = id;
+
+    groups_id.forEach(function(group_id){
+
+        let endpoint = 'https://graph.facebook.com/' + group_id + '/members/' + userId; 
+        
+        console.log('8888 --- Teste--');
+        console.log(endpoint);
+        rp({
+            url: endpoint,
+            headers: {
+                Authorization: 'Bearer ' + ACCESS_TOKEN
+            },
+            method:'POST',
+            json: true
+            })
+        .then(function (res) {
+            console.log('9999 --- Teste--');
+            console.log('success Insert groups', res);
+        })
+        .catch(function (err) {
+            console.log('err');
+        });
+
+    });
+}
+
 function processUserEvents(data) {
+    console.log('processUserEvents--');
     data.entry.forEach(function(entry){
         let group_id = entry.id;
         entry.changes.forEach(function(change){
@@ -132,6 +288,7 @@ function processUserEvents(data) {
 }
 
 function processWorkplaceSecurityEvents(data) {
+    console.log('processWorkplaceSecurityEvents--');
     data.entry.forEach(function(entry){
         let group_id = entry.id;
         entry.changes.forEach(function(change){

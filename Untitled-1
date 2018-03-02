@@ -1,0 +1,19 @@
+// Criado usuario---------------
+
+{ field: 'membership',
+  value: 
+   { member: { id: '100024667095126', name: 'Work Saluta' },
+     update_time: '2018-03-02T14:55:04+0000',
+     verb: 'add',
+     community: { id: '1406581722734258' } } }
+
+
+
+// Criado usuario---------------
+{ field: 'membership',
+  value: 
+   { member: { id: '100024289753034', name: 'Denys Fontenele Araújo' },
+     update_time: '2018-03-02T16:47:38+0000',
+     verb: 'add',
+     community: { id: '1406581722734258' },
+     actor: { id: '100024289753034', name: 'Denys Fontenele Araújo' } } }
