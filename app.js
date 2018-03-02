@@ -10,11 +10,46 @@ const
 
 var app = express();
 
+app.use(bodyParser.json());
+app.use(bodyParser.json({ verify: verifyRequestSignature }));
+
+/*
+ * Verify that the callback from Facebook.
+ */
+function verifyRequestSignature(req, res, buf) {
+    var signature = req.headers['x-hub-signature'];
+
+    console.log('Verify Signature call');
+  
+    if (!signature) {
+      // For testing, let's log an error. In production, you should throw an
+      // error.
+      console.error('Couldn\'t validate the signature.');
+    } else {
+      var elements = signature.split('=');
+      var signatureHash = elements[1];
+  
+      var expectedHash = crypto.createHmac('sha1', APP_SECRET).update(buf).digest('hex');
+  
+      if (signatureHash != expectedHash) {
+        throw new Error('Couldn\'t validate the request signature.');
+      }
+    }
+}
+
+app.set('port', process.env.PORT || 5000);
+
 app.get('/hello', function(req, res){
     res.send('Hello World!')
 });
 
-app.set('port', process.env.PORT || 5000);
+app.get('/webhook', function(req, res){
+    res.send('GET CHAMADA');
+});
+
+app.post('/webhook', function(req, res){
+    res.send('POST CHAMADA');
+});
 
 //Start server
 app.listen(app.get('port'), function() {
