@@ -8,10 +8,10 @@ const
   VERIFY_TOKEN = process.env.VERIFY_TOKEN,
   ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 
-  if (!(APP_SECRET && VERIFY_TOKEN && ACCESS_TOKEN)) {
-    console.error('Missing config values');
-    process.exit(1);
-  }
+//   if (!(APP_SECRET && VERIFY_TOKEN && ACCESS_TOKEN)) {
+//     console.error('Missing config values');
+//     process.exit(1);
+//   }
 
 var app = express();
 
@@ -44,6 +44,11 @@ function verifyRequestSignature(req, res, buf) {
 
 app.set('port', process.env.PORT || 5000);
 
+app.get('/hello', function(req, res) {
+    console.log('Hello console');
+    res.send('Hello World!')
+});
+
 /*
 *
 * Check that the verify token in the webhook setup is the same token
@@ -66,41 +71,74 @@ app.post('/', function (req, res) {
     console.log('Post webhook call --');
     try {
         var data = req.body;
-    switch (data.object) {
-            case 'page':
-              processPageEvents(data);
-              break;
-            case 'group':
-              processGroupEvents(data);
-              break;
-            case 'user':
-              processUserEvents(data);
-              break;
-            case 'workplace_security':
-              processWorkplaceSecurityEvents(data);
-              break;
-            default:
-              console.log('Unhandled Webhook Object', data.object);
-            }
-          } catch (e) {
-            console.error(e);
-          } finally {
-            console.log('Finally post call');
-            res.sendStatus(200);
-          }
+        switch (data.object) {
+                case 'page':
+                processPageEvents(data);
+                break;
+                case 'group':
+                processGroupEvents(data);
+                break;
+                case 'user':
+                processUserEvents(data);
+                break;
+                case 'workplace_security':
+                processWorkplaceSecurityEvents(data);
+                break;
+                default:
+                console.log('Unhandled Webhook Object', data.object);
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        console.log('Finally post call');
+        res.sendStatus(200);
+    }
 });
 
-app.get('/hello', function(req, res){
-    res.send('Hello World!')
-});
+function processPageEvents(data) {
+    data.entry.forEach(function(entry){
+        let page_id = entry.id;
+            // Chat messages sent to the page
+        if(entry.messaging) {
+        entry.messaging.forEach(function(messaging_event){
+            console.log('Page Messaging Event',page_id,messaging_event);
+        });
+        }
+            // Related in pages or changes mentions of page
+        if(entry.changes) {
+        entry.changes.forEach(function(change){
+            console.log('Page Change',page_id,change);
+        });
+        }
+    });
+}
 
-app.get('/webhook', function(req, res){
-    res.send('GET CHAMADA');
-});
+function processGroupEvents(data) {
+    data.entry.forEach(function(entry){
+        let group_id = entry.id;
+        entry.changes.forEach(function(change){
+        console.log('Group Change',group_id,change);
+        });
+    });
+}
 
-app.post('/webhook', function(req, res){
-    res.send('POST CHAMADA');
-});
+function processUserEvents(data) {
+    data.entry.forEach(function(entry){
+        let group_id = entry.id;
+        entry.changes.forEach(function(change){
+        console.log('User Change',group_id,change);
+        });
+    });
+}
+
+function processWorkplaceSecurityEvents(data) {
+    data.entry.forEach(function(entry){
+        let group_id = entry.id;
+        entry.changes.forEach(function(change){
+        console.log('Workplace change security',group_id,change);
+        });
+    });
+}
 
 //Start server
 app.listen(app.get('port'), function() {
