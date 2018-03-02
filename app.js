@@ -8,6 +8,11 @@ const
   VERIFY_TOKEN = process.env.VERIFY_TOKEN,
   ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 
+  if (!(APP_SECRET && VERIFY_TOKEN && ACCESS_TOKEN)) {
+    console.error('Missing config values');
+    process.exit(1);
+  }
+  
 var app = express();
 
 app.use(bodyParser.json());
