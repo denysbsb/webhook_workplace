@@ -12,7 +12,7 @@ const
     console.error('Missing config values');
     process.exit(1);
   }
-  
+
 var app = express();
 
 app.use(bodyParser.json());
@@ -43,6 +43,52 @@ function verifyRequestSignature(req, res, buf) {
 }
 
 app.set('port', process.env.PORT || 5000);
+
+/*
+*
+* Check that the verify token in the webhook setup is the same token
+*
+*/
+
+app.get('/', function(req, res) {
+    console.log('Verify Token get');
+    if (req.query['hub.mode'] === 'subscribe' &&
+        req.query['hub.verify_token'] === VERIFY_TOKEN) {
+      console.log('Validating webhook');
+      res.status(200).send(req.query['hub.challenge']);
+    } else {
+      console.error('Falha na validação. Verifique a validação ed token.');
+      res.sendStatus(403);
+    }
+});
+
+app.post('/', function (req, res) {
+    console.log('Post webhook call --');
+    try {
+        var data = req.body;
+    switch (data.object) {
+            case 'page':
+              processPageEvents(data);
+              break;
+            case 'group':
+              processGroupEvents(data);
+              break;
+            case 'user':
+              processUserEvents(data);
+              break;
+            case 'workplace_security':
+              processWorkplaceSecurityEvents(data);
+              break;
+            default:
+              console.log('Unhandled Webhook Object', data.object);
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            console.log('Finally post call');
+            res.sendStatus(200);
+          }
+});
 
 app.get('/hello', function(req, res){
     res.send('Hello World!')
